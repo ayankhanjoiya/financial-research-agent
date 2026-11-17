@@ -1,7 +1,6 @@
 import datetime
-import json
 import logging
-from core.state import ResearchState, AgentLog
+from core.state import ResearchState
 from tools.search_tools import fetch_company_news
 from core.llm import get_gemini_llm
 
@@ -11,13 +10,14 @@ def news_node(state: ResearchState) -> ResearchState:
     """News Research Agent: Scours recent news, earnings commentary, and sentiment signals."""
     ticker = state["ticker"]
     company_name = state.get("company_name", ticker)
-    logs = list(state.get("agent_logs", []))
-    logs.append(AgentLog(
-        timestamp=datetime.datetime.now().strftime("%H:%M:%S"),
-        agent="News Research Agent",
-        status="in_progress",
-        message=f"Searching recent material news and sentiment for {company_name} ({ticker})..."
-    ))
+    node_logs = [
+        {
+            "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+            "agent": "News Research Agent",
+            "status": "in_progress",
+            "message": f"Searching recent material news and sentiment for {company_name} ({ticker})..."
+        }
+    ]
     
     articles = fetch_company_news(ticker, company_name)
     
@@ -60,15 +60,14 @@ Provide:
         "ai_analysis": ai_summary
     }
     
-    logs.append(AgentLog(
-        timestamp=datetime.datetime.now().strftime("%H:%M:%S"),
-        agent="News Research Agent",
-        status="completed",
-        message=f"News analysis complete. Market sentiment: {sentiment} ({len(articles)} articles indexed)."
-    ))
+    node_logs.append({
+        "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+        "agent": "News Research Agent",
+        "status": "completed",
+        "message": f"News analysis complete. Sentiment: {sentiment} ({len(articles)} articles indexed)."
+    })
     
     return {
-        **state,
         "news_data": news_data,
-        "agent_logs": logs
+        "agent_logs": node_logs
     }

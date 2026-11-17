@@ -1,7 +1,7 @@
 import datetime
 import json
 import logging
-from core.state import ResearchState, AgentLog
+from core.state import ResearchState
 from tools.search_tools import search_competitors
 from core.llm import get_gemini_llm
 
@@ -14,13 +14,14 @@ def competitor_node(state: ResearchState) -> ResearchState:
     industry = state.get("industry", "N/A")
     company_name = state.get("company_name", ticker)
     
-    logs = list(state.get("agent_logs", []))
-    logs.append(AgentLog(
-        timestamp=datetime.datetime.now().strftime("%H:%M:%S"),
-        agent="Competitor Agent",
-        status="in_progress",
-        message=f"Benchmarking peer competitors and industry dynamics for {company_name}..."
-    ))
+    node_logs = [
+        {
+            "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+            "agent": "Competitor Agent",
+            "status": "in_progress",
+            "message": f"Benchmarking peer competitors and industry dynamics for {company_name}..."
+        }
+    ]
     
     peers = search_competitors(ticker, sector, industry)
     
@@ -54,15 +55,14 @@ Provide:
         "ai_analysis": ai_summary
     }
     
-    logs.append(AgentLog(
-        timestamp=datetime.datetime.now().strftime("%H:%M:%S"),
-        agent="Competitor Agent",
-        status="completed",
-        message=f"Peer analysis complete ({len(peers)} competitors benchmarked)."
-    ))
+    node_logs.append({
+        "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+        "agent": "Competitor Agent",
+        "status": "completed",
+        "message": f"Peer analysis complete ({len(peers)} competitors benchmarked)."
+    })
     
     return {
-        **state,
         "competitor_data": competitor_data,
-        "agent_logs": logs
+        "agent_logs": node_logs
     }

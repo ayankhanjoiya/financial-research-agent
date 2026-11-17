@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Financial Research Agent — Multi-Agent Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .prose table { width: 100%; border-collapse: collapse; margin-top: 1rem; margin-bottom: 1rem; }
+    .prose th, .prose td { border: 1px solid #334155; padding: 0.65rem 0.85rem; font-size: 0.875rem; }
+    .prose th { background: #1e293b; color: #f8fafc; font-weight: 600; text-align: left; }
+    .prose tr:nth-child(even) { background: rgba(30, 41, 59, 0.4); }
+    .prose h1, .prose h2, .prose h3 { color: #f8fafc; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+    .prose h1 { font-size: 1.75rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; }
+    .prose h2 { font-size: 1.35rem; color: #38bdf8; }
+    .prose h3 { font-size: 1.1rem; color: #94a3b8; }
+    .prose p { margin-bottom: 0.85rem; line-height: 1.65; color: #cbd5e1; }
+    .prose ul, .prose ol { margin-left: 1.5rem; margin-bottom: 1rem; color: #cbd5e1; }
+    .prose li { margin-bottom: 0.35rem; }
+    .prose blockquote { border-left: 4px solid #38bdf8; padding-left: 1rem; color: #94a3b8; font-style: italic; }
+    @media print {
+      body { background: white !important; color: black !important; }
+      #search-section, #agents-grid, #nav-tabs, #header-controls { display: none !important; }
+      #report-tab { display: block !important; }
+      .prose th { background: #e2e8f0 !important; color: black !important; }
+      .prose td { border-color: #cbd5e1 !important; color: black !important; }
+      .prose h1, .prose h2, .prose h3, .prose p, .prose li { color: black !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Navigation / Header -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-sky-500/20">
+          AI
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-base font-bold tracking-tight text-white">Financial Research Agent</h1>
+            <span class="text-xs bg-sky-950 text-sky-400 border border-sky-800/80 rounded-full px-2 py-0.5 font-medium">LangGraph Swarm</span>
+          </div>
+          <p class="text-xs text-slate-400">Autonomous Multi-Agent Equity Research & SEC Filings Intelligence</p>
+        </div>
+      </div>
+      
+      <div id="header-controls" class="flex items-center space-x-3">
+        <div id="status-pill" class="flex items-center space-x-2 text-xs bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-full text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span id="status-text">System Idle</span>
+        </div>
+        <button onclick="window.print()" id="btn-print" class="hidden px-3 py-1.5 text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition">
+          Print / PDF
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- Search / Ticker Selection Bar -->
+    <section id="search-section" class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <div class="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+        <div class="flex-1 max-w-xl">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Enter Company Ticker</label>
+          <div class="relative flex items-center">
+            <input 
+              type="text" 
+              id="ticker-input" 
+              placeholder="e.g. NVDA, AAPL, MSFT, TSLA, AMZN" 
+              value="NVDA" 
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono uppercase font-semibold transition"
+              onkeydown="if(event.key === 'Enter') startResearch()"
+            />
+            <button 
+              id="btn-run"
+              onclick="startResearch()" 
+              class="absolute right-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-500 rounded-lg shadow-md transition flex items-center space-x-1.5">
+              <span>Run Research</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Preset Tickers</span>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="selectTicker('NVDA')" class="px-2.5 py-1 text-xs font-mono font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 rounded-lg transition">NVDA</button>
+            <button onclick="selectTicker('AAPL')" class="px-2.5 py-1 text-xs font-mono font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 rounded-lg transition">AAPL</button>
+            <button onclick="selectTicker('MSFT')" class="px-2.5 py-1 text-xs font-mono font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 rounded-lg transition">MSFT</button>
+            <button onclick="selectTicker('TSLA')" class="px-2.5 py-1 text-xs font-mono font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 rounded-lg transition">TSLA</button>
+            <button onclick="selectTicker('AMZN')" class="px-2.5 py-1 text-xs font-mono font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 rounded-lg transition">AMZN</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multi-Agent Swarm Tracker (Visual Grid) -->
+    <section id="agents-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      
+      <!-- Manager Agent Card -->
+      <div id="card-manager" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between transition-all duration-300">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-200">Manager</span>
+            <span id="badge-manager" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <p id="msg-manager" class="text-[11px] text-slate-400 leading-snug line-clamp-2">Awaiting ticker input...</p>
+        </div>
+        <div class="mt-2 text-[10px] text-slate-500 font-mono" id="time-manager">--:--:--</div>
+      </div>
+
+      <!-- Financial Data Agent Card -->
+      <div id="card-financial" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between transition-all duration-300">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-200">Financials</span>
+            <span id="badge-financial" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <p id="msg-financial" class="text-[11px] text-slate-400 leading-snug line-clamp-2">Statements & Ratios</p>
+        </div>
+        <div class="mt-2 text-[10px] text-slate-500 font-mono" id="time-financial">--:--:--</div>
+      </div>
+
+      <!-- News & Sentiment Agent Card -->
+      <div id="card-news" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between transition-all duration-300">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-200">News & Sent.</span>
+            <span id="badge-news" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <p id="msg-news" class="text-[11px] text-slate-400 leading-snug line-clamp-2">90-Day Catalysts</p>
+        </div>
+        <div class="mt-2 text-[10px] text-slate-500 font-mono" id="time-news">--:--:--</div>
+      </div>
+
+      <!-- Annual Report Agent Card -->
+      <div id="card-sec" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between transition-all duration-300">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-200">10-K Filings</span>
+            <span id="badge-sec" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <p id="msg-sec" class="text-[11px] text-slate-400 leading-snug line-clamp-2">SEC EDGAR Items 1/1A/7</p>
+        </div>
+        <div class="mt-2 text-[10px] text-slate-500 font-mono" id="time-sec">--:--:--</div>
+      </div>
+
+      <!-- Competitor Agent Card -->
+      <div id="card-competitor" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between transition-all duration-300">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-200">Competitors</span>
+            <span id="badge-competitor" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <p id="msg-competitor" class="text-[11px] text-slate-400 leading-snug line-clamp-2">Peer Benchmarking</p>
+        </div>
+        <div class="mt-2 text-[10px] text-slate-500 font-mono" id="time-competitor">--:--:--</div>
+      </div>
+
+      <!-- Risk Analysis Agent Card -->
+      <div id="card-risk" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between transition-all duration-300">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-200">Risk Matrix</span>
+            <span id="badge-risk" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <p id="msg-risk" class="text-[11px] text-slate-400 leading-snug line-clamp-2">Stress-Test & Threats</p>
+        </div>
+        <div class="mt-2 text-[10px] text-slate-500 font-mono" id="time-risk">--:--:--</div>
+      </div>
+
+    </section>
+
+    <!-- Workspace Tabs & Output -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+      
+      <!-- Tab Bar -->
+      <div id="nav-tabs" class="border-b border-slate-800 bg-slate-950/60 flex items-center px-4 overflow-x-auto">
+        <button onclick="switchTab('report')" id="tab-btn-report" class="py-3 px-4 text-xs font-semibold border-b-2 border-sky-500 text-sky-400 flex items-center space-x-2 whitespace-nowrap">
+          <span>Equity Research Memorandum</span>
+        </button>
+        <button onclick="switchTab('financials')" id="tab-btn-financials" class="py-3 px-4 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+          <span>Financials & Valuation</span>
+        </button>
+        <button onclick="switchTab('news')" id="tab-btn-news" class="py-3 px-4 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+          <span>News & Sentiment</span>
+        </button>
+        <button onclick="switchTab('competitors')" id="tab-btn-competitors" class="py-3 px-4 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+          <span>Competitor Landscape</span>
+        </button>
+        <button onclick="switchTab('risks')" id="tab-btn-risks" class="py-3 px-4 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+          <span>Risk Assessment</span>
+        </button>
+        <button onclick="switchTab('logs')" id="tab-btn-logs" class="py-3 px-4 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap">
+          <span>Execution Telemetry</span>
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="p-6 min-h-[460px]">
+
+        <!-- Tab 1: Final Report -->
+        <div id="tab-report" class="prose max-w-none text-slate-200">
+          <div class="text-center py-16 text-slate-500">
+            <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p class="text-sm font-medium">Select or enter a company ticker above and click "Run Research".</p>
+            <p class="text-xs text-slate-600 mt-1">The LangGraph swarm will assemble fundamental, SEC, competitor, and news data.</p>
+          </div>
+        </div>
+
+        <!-- Tab 2: Financials & Valuation -->
+        <div id="tab-financials" class="hidden space-y-6">
+          <div id="fin-content" class="text-slate-400 text-sm">No financial data loaded yet.</div>
+        </div>
+
+        <!-- Tab 3: News & Sentiment -->
+        <div id="tab-news" class="hidden space-y-6">
+          <div id="news-content" class="text-slate-400 text-sm">No news data loaded yet.</div>
+        </div>
+
+        <!-- Tab 4: Competitor Landscape -->
+        <div id="tab-competitors" class="hidden space-y-6">
+          <div id="comp-content" class="text-slate-400 text-sm">No competitor data loaded yet.</div>
+        </div>
+
+        <!-- Tab 5: Risk Assessment -->
+        <div id="tab-risks" class="hidden space-y-6">
+          <div id="risk-content" class="text-slate-400 text-sm">No risk data loaded yet.</div>
+        </div>
+
+        <!-- Tab 6: Execution Telemetry Logs -->
+        <div id="tab-logs" class="hidden">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs max-h-[500px] overflow-y-auto space-y-1.5 text-slate-300" id="telemetry-logs">
+            <div class="text-slate-600">[System] Standby. Waiting for research execution.</div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    let activeTab = 'report';
+    let currentEventSource = null;
+    let researchResult = null;
+
+    function selectTicker(ticker) {
+      document.getElementById('ticker-input').value = ticker;
+      startResearch();
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      const tabs = ['report', 'financials', 'news', 'competitors', 'risks', 'logs'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const content = document.getElementById(`tab-${t}`);
+        if (t === tab) {
+          btn.className = "py-3 px-4 text-xs font-semibold border-b-2 border-sky-500 text-sky-400 flex items-center space-x-2 whitespace-nowrap";
+          content.classList.remove('hidden');
+        } else {
+          btn.className = "py-3 px-4 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 whitespace-nowrap";
+          content.classList.add('hidden');
+        }
+      });
+    }
+
+    function updateAgentCard(name, status, message, time) {
+      const cardMap = {
+        'manager': 'manager',
+        'financial_agent': 'financial',
+        'financial': 'financial',
+        'news_agent': 'news',
+        'news': 'news',
+        'sec_agent': 'sec',
+        'sec': 'sec',
+        'competitor_agent': 'competitor',
+        'competitor': 'competitor',
+        'risk_agent': 'risk',
+        'risk': 'risk',
+        'report_generator': 'report',
+        'report': 'report'
+      };
+
+      const key = cardMap[name] || name;
+      const card = document.getElementById(`card-${key}`);
+      const badge = document.getElementById(`badge-${key}`);
+      const msg = document.getElementById(`msg-${key}`);
+      const timeEl = document.getElementById(`time-${key}`);
+
+      if (!card || !badge || !msg) return;
+
+      if (time && timeEl) timeEl.innerText = time;
+      if (message) msg.innerText = message;
+
+      if (status === 'in_progress') {
+        card.className = "bg-slate-900 border border-sky-500/80 rounded-xl p-3 flex flex-col justify-between shadow-lg shadow-sky-500/10 transition-all duration-300";
+        badge.className = "w-2 h-2 rounded-full bg-sky-400 animate-ping";
+      } else if (status === 'completed') {
+        card.className = "bg-slate-900 border border-emerald-500/50 rounded-xl p-3 flex flex-col justify-between transition-all duration-300";
+        badge.className = "w-2 h-2 rounded-full bg-emerald-400";
+      } else if (status === 'error') {
+        card.className = "bg-slate-900 border border-rose-500/80 rounded-xl p-3 flex flex-col justify-between transition-all duration-300";
+        badge.className = "w-2 h-2 rounded-full bg-rose-500";
+      }
+    }
+
+    function appendLog(timestamp, agent, message) {
+      const logsContainer = document.getElementById('telemetry-logs');
+      const row = document.createElement('div');
+      row.className = "flex space-x-2 items-start py-0.5";
+      row.innerHTML = `<span class="text-slate-500">${timestamp || new Date().toLocaleTimeString()}</span> <span class="text-sky-400 font-semibold">[${agent}]</span> <span class="text-slate-300">${message}</span>`;
+      logsContainer.appendChild(row);
+      logsContainer.scrollTop = logsContainer.scrollHeight;
+    }
+
+    function renderFinalData(data) {
+      researchResult = data;
+      document.getElementById('btn-print').classList.remove('hidden');
+
+      // 1. Report Tab
+      if (data.final_report) {
+        document.getElementById('tab-report').innerHTML = marked.parse(data.final_report);
+      }
+
+      // 2. Financials Tab
+      if (data.financial_data) {
+        const ov = data.financial_data.overview || {};
+        let html = `
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400">Current Share Price</span>
+              <div class="text-xl font-bold text-white mt-1">${ov.currentPrice} ${ov.currency || 'USD'}</div>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400">Market Capitalization</span>
+              <div class="text-xl font-bold text-white mt-1">${ov.marketCap}</div>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400">P/E (Trailing / Forward)</span>
+              <div class="text-xl font-bold text-sky-400 mt-1">${ov.trailingPE} / ${ov.forwardPE}</div>
+            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <span class="text-xs text-slate-400">Debt-to-Equity</span>
+              <div class="text-xl font-bold text-amber-400 mt-1">${ov.debtToEquity}</div>
+            </div>
+          </div>
+          <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+            <h3 class="text-sm font-bold text-slate-200 mb-3">Financial Analyst Appraisal</h3>
+            <div class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">${data.financial_data.ai_analysis || 'No summary'}</div>
+          </div>
+        `;
+        document.getElementById('fin-content').innerHTML = html;
+      }
+
+      // 3. News Tab
+      if (data.news_data) {
+        const sentiment = data.news_data.sentiment || 'Neutral';
+        const color = sentiment === 'Bullish' ? 'text-emerald-400 border-emerald-500/40 bg-emerald-950/40' : sentiment === 'Bearish' ? 'text-rose-400 border-rose-500/40 bg-rose-950/40' : 'text-slate-300 border-slate-700 bg-slate-900';
+        let html = `
+          <div class="flex items-center space-x-3 mb-6">
+            <span class="text-sm font-semibold text-slate-400">Market Sentiment Verdict:</span>
+            <span class="text-xs font-bold border px-3 py-1 rounded-full ${color}">${sentiment}</span>
+          </div>
+          <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 mb-6">
+            <h3 class="text-sm font-bold text-slate-200 mb-3">Market Perception & Catalysts</h3>
+            <div class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">${data.news_data.ai_analysis || 'No analysis'}</div>
+          </div>
+          <div class="space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Sourced Headlines</h4>
+        `;
+        (data.news_data.articles || []).forEach(a => {
+          html += `
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800/80">
+              <a href="${a.url || '#'}" target="_blank" class="text-sm font-semibold text-sky-400 hover:underline">${a.title}</a>
+              <p class="text-xs text-slate-400 mt-1">${a.summary}</p>
+              <div class="mt-2 text-[10px] text-slate-500 flex items-center space-x-3">
+                <span>Source: ${a.source}</span>
+                <span>Date: ${a.published}</span>
+              </div>
+            </div>
+          `;
+        });
+        html += `</div>`;
+        document.getElementById('news-content').innerHTML = html;
+      }
+
+      // 4. Competitor Tab
+      if (data.competitor_data) {
+        let html = `
+          <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 mb-6">
+            <h3 class="text-sm font-bold text-slate-200 mb-3">Peer Group & Moat Analysis</h3>
+            <div class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">${data.competitor_data.ai_analysis || 'No analysis'}</div>
+          </div>
+        `;
+        document.getElementById('comp-content').innerHTML = html;
+      }
+
+      // 5. Risk Tab
+      if (data.risk_data) {
+        let html = `
+          <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 mb-6">
+            <h3 class="text-sm font-bold text-slate-200 mb-3">Chief Risk Officer Stress-Test</h3>
+            <div class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">${data.risk_data.ai_analysis || 'No analysis'}</div>
+          </div>
+        `;
+        document.getElementById('risk-content').innerHTML = html;
+      }
+    }
+
+    function startResearch() {
+      const ticker = document.getElementById('ticker-input').value.trim().toUpperCase();
+      if (!ticker) return;
+
+      const btn = document.getElementById('btn-run');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="inline-block animate-spin mr-1.5">⏳</span><span>Analyzing...</span>`;
+
+      document.getElementById('status-text').innerText = `Running Swarm for ${ticker}...`;
+      document.getElementById('status-pill').className = "flex items-center space-x-2 text-xs bg-sky-950/80 border border-sky-700/80 px-3 py-1.5 rounded-full text-sky-300";
+
+      document.getElementById('tab-report').innerHTML = `
+        <div class="text-center py-20 text-slate-400">
+          <div class="inline-block w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p class="text-sm font-semibold text-slate-200">Autonomous LangGraph Swarm in Progress...</p>
+          <p class="text-xs text-slate-500 mt-1">Extracting balance sheet, SEC 10-K disclosures, news sentiment, and competitive moats.</p>
+        </div>
+      `;
+
+      if (currentEventSource) {
+        currentEventSource.close();
+      }
+
+      // Reset agent cards
+      ['manager', 'financial', 'news', 'sec', 'competitor', 'risk'].forEach(a => {
+        updateAgentCard(a, 'in_progress', 'Running task...', new Date().toLocaleTimeString());
+      });
+
+      currentEventSource = new EventSource(`/api/research/stream/${ticker}`);
+
+      currentEventSource.onmessage = function(e) {
+        try {
+          const data = JSON.parse(e.data);
+
+          if (data.event === 'node_update') {
+            updateAgentCard(data.node, 'completed', data.message, new Date().toLocaleTimeString());
+            appendLog(new Date().toLocaleTimeString(), data.node, data.message);
+          } else if (data.event === 'complete') {
+            document.getElementById('status-text').innerText = `Completed for ${ticker}`;
+            document.getElementById('status-pill').className = "flex items-center space-x-2 text-xs bg-emerald-950/80 border border-emerald-700/80 px-3 py-1.5 rounded-full text-emerald-300";
+            btn.disabled = false;
+            btn.innerHTML = `<span>Run Research</span><svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>`;
+            renderFinalData(data);
+            currentEventSource.close();
+          } else if (data.event === 'error') {
+            document.getElementById('status-text').innerText = "Execution Error";
+            btn.disabled = false;
+            btn.innerHTML = `<span>Retry</span>`;
+            appendLog(new Date().toLocaleTimeString(), "Error", data.message);
+            currentEventSource.close();
+          }
+        } catch (err) {
+          console.error("SSE parse error:", err);
+        }
+      };
+
+      currentEventSource.onerror = function(err) {
+        console.error("EventSource failed:", err);
+        btn.disabled = false;
+        btn.innerHTML = `<span>Run Research</span>`;
+        if (currentEventSource) currentEventSource.close();
+      };
+    }
+  </script>
+</body>
+</html>

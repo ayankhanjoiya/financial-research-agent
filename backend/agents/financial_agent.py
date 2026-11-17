@@ -1,7 +1,7 @@
 import datetime
 import json
 import logging
-from core.state import ResearchState, AgentLog
+from core.state import ResearchState
 from tools.yfinance_tools import fetch_financial_overview, fetch_financial_statements
 from core.llm import get_gemini_llm
 
@@ -10,13 +10,14 @@ logger = logging.getLogger(__name__)
 def financial_node(state: ResearchState) -> ResearchState:
     """Financial Data Agent: Gathers and analyzes raw financial statements and valuation multiples."""
     ticker = state["ticker"]
-    logs = list(state.get("agent_logs", []))
-    logs.append(AgentLog(
-        timestamp=datetime.datetime.now().strftime("%H:%M:%S"),
-        agent="Financial Data Agent",
-        status="in_progress",
-        message=f"Extracting historical financial statements and valuation multiples for {ticker}..."
-    ))
+    node_logs = [
+        {
+            "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+            "agent": "Financial Data Agent",
+            "status": "in_progress",
+            "message": f"Extracting historical statements & valuation multiples for {ticker}..."
+        }
+    ]
     
     overview = fetch_financial_overview(ticker)
     statements = fetch_financial_statements(ticker)
@@ -27,10 +28,10 @@ def financial_node(state: ResearchState) -> ResearchState:
     if llm:
         try:
             prompt = f"""You are an institutional financial analyst. Analyze these key metrics and statements for {ticker}:
-Company Profile: {overview.get('longName')} | Sector: {overview.get('sector')}
+Company: {overview.get('longName')} | Sector: {overview.get('sector')}
 Current Price: {overview.get('currentPrice')} {overview.get('currency')} | Market Cap: {overview.get('marketCap')}
 Trailing P/E: {overview.get('trailingPE')} | Forward P/E: {overview.get('forwardPE')} | PEG: {overview.get('pegRatio')}
-Profit Margin: {overview.get('profitMargins')} | Operating Margin: {overview.get('operatingMargins')}
+Operating Margin: {overview.get('operatingMargins')} | Profit Margin: {overview.get('profitMargins')}
 Total Cash: {overview.get('totalCash')} | Total Debt: {overview.get('totalDebt')} | Debt/Equity: {overview.get('debtToEquity')}
 Free Cash Flow: {overview.get('freeCashflow')}
 
@@ -51,8 +52,8 @@ Provide a concise, quantitative evaluation covering:
     else:
         ai_summary = (
             f"Financial profile: Current Price {overview.get('currentPrice')} {overview.get('currency')} "
-            f"with Market Cap {overview.get('marketCap')}. P/E multiple is {overview.get('trailingPE')} "
-            f"and Debt-to-Equity stands at {overview.get('debtToEquity')}."
+            f"with Market Cap {overview.get('marketCap')}. Trailing P/E is {overview.get('trailingPE')}, "
+            f"Forward P/E is {overview.get('forwardPE')}, and Debt-to-Equity is {overview.get('debtToEquity')}."
         )
 
     financial_data = {
@@ -61,15 +62,14 @@ Provide a concise, quantitative evaluation covering:
         "ai_analysis": ai_summary
     }
     
-    logs.append(AgentLog(
-        timestamp=datetime.datetime.now().strftime("%H:%M:%S"),
-        agent="Financial Data Agent",
-        status="completed",
-        message=f"Financial analysis completed for {ticker}."
-    ))
+    node_logs.append({
+        "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+        "agent": "Financial Data Agent",
+        "status": "completed",
+        "message": f"Financial analysis completed for {ticker}."
+    })
     
     return {
-        **state,
         "financial_data": financial_data,
-        "agent_logs": logs
+        "agent_logs": node_logs
     }

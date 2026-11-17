@@ -1,4 +1,5 @@
-from typing import TypedDict, Optional, Dict, Any, List
+import operator
+from typing import Annotated, TypedDict, Optional, Dict, Any, List
 
 class AgentLog(TypedDict):
     timestamp: str
@@ -26,7 +27,7 @@ class ResearchState(TypedDict, total=False):
     final_report: Optional[str]
     report_html: Optional[str]
     
-    # Execution telemetry & error handling
-    agent_logs: List[AgentLog]
-    errors: List[str]
+    # Telemetry reducers (safely merge across parallel agent nodes)
+    agent_logs: Annotated[List[Dict[str, Any]], operator.add]
+    errors: Annotated[List[str], operator.add]
     current_step: str
